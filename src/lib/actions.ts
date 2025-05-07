@@ -8,7 +8,10 @@ import {
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
+  SalleSchema,
   LessonSchema,
+  examSchema,
+  AssignmentSchema,
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -366,111 +369,196 @@ export const deleteStudent = async (
     return { success: false, error: true };
   }
 };
+/*-----------------------------------------exam*/
 
-export const createExam = async (
-  currentState: CurrentState,
-  data: ExamSchema
-) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
+export async function createExam(prevState: any, formData: any) {
+  const parsed = examSchema.safeParse(formData);
+
+  if (!parsed.success) {
+    console.error("Validation error:", parsed.error);
+    return { success: false, error: true };
+  }
+
+  const { classId, subjectId, salleId, startTime, endTime } = parsed.data;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.create({
       data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
+        classId,
+        subjectId,
+        salleId: salleId || null,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.error("Erreur création examen :", error);
     return { success: false, error: true };
   }
-};
+}
 
-export const updateExam = async (
-  currentState: CurrentState,
-  data: ExamSchema
-) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
+export async function updateExam(prevState: any, formData: any) {
+  const parsed = examSchema.safeParse(formData);
+
+  if (!parsed.success || !parsed.data.id) {
+    console.error("Validation error:", parsed.error);
+    return { success: false, error: true };
+  }
+
+  const { id, classId, subjectId, salleId, startTime, endTime } = parsed.data;
 
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     await prisma.exam.update({
-      where: {
-        id: data.id,
-      },
+      where: { id: Number(id) },
       data: {
-        title: data.title,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        lessonId: data.lessonId,
+        classId,
+        subjectId,
+        salleId: salleId || null,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.error("Erreur mise à jour examen :", error);
     return { success: false, error: true };
   }
-};
+}
 
 export const deleteExam = async (
   currentState: CurrentState,
   data: FormData
 ) => {
   const id = data.get("id") as string;
-
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+  console.log("Attempting to delete exam with ID:", id);
+  
   try {
+    // Verify the exam exists before trying to delete it
+    const exam = await prisma.exam.findUnique({
+      where: { id: parseInt(id) },
+    });
+    
+    if (!exam) {
+      console.error(`Exam with ID ${id} not found`);
+      return { success: false, error: true, message: "Exam not found" };
+    }
+    
     await prisma.exam.delete({
       where: {
         id: parseInt(id),
-        // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+      },
+    });
+    
+    console.log(`Successfully deleted exam with ID: ${id}`);
+    return { success: true, error: false };
+  } catch (err) {
+    console.error("Erreur suppression examen :", err);
+    return { success: false, error: true };
+  }
+};
+/*-------------------------------------------------------------------*/
+/*-----------------------------------Assignment--------------------------------*/
+
+
+
+
+export async function createAssignment(prevState: any, formData: AssignmentSchema) {
+  try {
+    await prisma.assignment.create({
+      data: {
+        title: formData.title,
+        description: formData.description,
+        lessonId: formData.lessonId,
+        dueDate: new Date(formData.dueDate),
+        pdfUrl: formData.pdfUrl || null,
+        weightPercentage: formData.weightPercentage || 20,
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/assignments");
+    return { success: true, error: false };
+  } catch (error) {
+    console.error("Error creating assignment:", error);
+    return { success: false, error: true };
+  }
+}
+
+export async function updateAssignment(prevState: any, formData: AssignmentSchema) {
+  try {
+    await prisma.assignment.update({
+      where: {
+        id: Number(formData.id),
+      },
+      data: {
+        title: formData.title,
+        description: formData.description,
+        lessonId: formData.lessonId,
+        dueDate: new Date(formData.dueDate),
+        pdfUrl: formData.pdfUrl || null,
+        weightPercentage: formData.weightPercentage || 20,
+      },
+    });
+
+    revalidatePath("/list/assignments");
+    return { success: true, error: false };
+  } catch (error) {
+    console.error("Error updating assignment:", error);
+    return { success: false, error: true };
+  }
+}
+
+export const deleteAssignment = async (
+  currentState: CurrentState,
+  data: FormData
+) => {
+  const id = data.get("id") as string;
+  console.log("Attempting to delete assignment with ID:", id);
+  
+  try {
+    await prisma.assignment.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+    
+    revalidatePath("/list/assignments");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
+    console.error("Error deleting assignment:", err);
     return { success: false, error: true };
   }
 };
 
+export async function getPdfDownloadUrl(pdfUrl: string) {
+  try {
+    if (!pdfUrl) return '';
+    
+    // Extract the public_id from the Cloudinary URL
+    if (pdfUrl.includes('cloudinary.com') && pdfUrl.includes('/upload/')) {
+      // Extract the public_id from the URL
+      const regex = /\/upload\/(?:v\d+\/)?(.+)$/;
+      const match = pdfUrl.match(regex);
+      
+      if (match && match[1]) {
+        const publicId = match[1];
+        // For security reasons, we're not including API keys in client-side code
+        // Instead, we'll return a URL that will work for public assets
+        return `https://res.cloudinary.com/dmdv2fuhy/image/upload/fl_attachment/${publicId}`;
+      }
+    }
+    
+    // If we couldn't parse the URL, return the original
+    return pdfUrl;
+  } catch (error) {
+    console.error("Error processing PDF URL:", error);
+    return pdfUrl;
+  }
+}
+
+/*-------------------------------------------------------------------*/
 export async function createEvent(prevState: any, formData: any) {
   try {
     await prisma.event.create({
@@ -584,24 +672,24 @@ export const deleteAnnouncement = async (
 };
 
 export async function createLesson(prevState: any, formData: LessonSchema) {
-  console.log("Server received:", formData);
   try {
-    const newLesson = await prisma.lesson.create({
+    console.log("Creating lesson with data:", formData);
+    await prisma.lesson.create({
       data: {
         name: formData.name,
-        day: formData.day,
         startTime: formData.startTime,
         endTime: formData.endTime,
         subjectId: formData.subjectId,
         classId: formData.classId,
         teacherId: formData.teacherId,
+        salleId: formData.salleId ? Number(formData.salleId) : null,
       },
     });
-    console.log("Created lesson:", newLesson);
+
     revalidatePath("/list/lessons");
     return { success: true, error: false };
-  } catch (err) {
-    console.error("Database error:", err);
+  } catch (error) {
+    console.log(error);
     return { success: false, error: true };
   }
 }
@@ -610,22 +698,23 @@ export async function updateLesson(prevState: any, formData: LessonSchema) {
   try {
     await prisma.lesson.update({
       where: {
-        id: parseInt(formData.id!.toString()),
+        id: formData.id,
       },
       data: {
         name: formData.name,
-        day: formData.day,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        subjectId: parseInt(formData.subjectId.toString()),
-        classId: parseInt(formData.classId.toString()),
+        subjectId: formData.subjectId,
+        classId: formData.classId,
         teacherId: formData.teacherId,
+        salleId: formData.salleId || null,
       },
     });
+
     revalidatePath("/list/lessons");
     return { success: true, error: false };
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     return { success: false, error: true };
   }
 }
@@ -646,13 +735,59 @@ export async function deleteLesson(prevState: any, formData: FormData) {
   }
 }
 
+//------------------------------------------Salle--------------------------
+export async function createSalle(prevState: any, formData: SalleSchema) {
+  try {
+    await prisma.salle.create({
+      data: {
+        name: formData.name,
+        floor: formData.floor,
+      },
+    });
 
+    revalidatePath("/list/salles");
+    return { success: true, error: false };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: true };
+  }
+}
 
+export async function updateSalle(prevState: any, formData: SalleSchema) {
+  try {
+    await prisma.salle.update({
+      where: {
+        id: Number(formData.id),
+      },
+      data: {
+        name: formData.name,
+        floor: formData.floor,
+      },
+    });
 
+    revalidatePath("/list/salles");
+    return { success: true, error: false };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: true };
+  }
+}
 
+export async function deleteSalle(prevState: any, formData: { id: number }) {
+  try {
+    await prisma.salle.delete({
+      where: {
+        id: Number(formData.id),
+      },
+    });
 
-
-
+    revalidatePath("/list/salles");
+    return { success: true, error: false };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: true };
+  }
+}
 
 
 
