@@ -772,10 +772,10 @@ export async function updateSalle(prevState: any, formData: SalleSchema) {
     return { success: false, error: true };
   }
 }
-
 export async function deleteSalle(prevState: CurrentState, formData: FormData) {
   try {
     const id = formData.get("id");
+
     await prisma.salle.delete({
       where: {
         id: Number(id),
@@ -789,10 +789,5 @@ export async function deleteSalle(prevState: CurrentState, formData: FormData) {
     return { success: false, error: true };
   }
 }
-
-
-
-
-
 
 

@@ -17,8 +17,8 @@ const nextConfig = {
       },
     ];
   },
-  // Use 'standalone' for a production deployment that includes only necessary files
-  output: 'standalone',
 };
 
 export default nextConfig;
+
+
