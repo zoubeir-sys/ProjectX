@@ -9,6 +9,7 @@ import {
   deleteEvent,
   deleteAnnouncement,
   deleteLesson,
+  deleteSalle,
 } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -27,6 +28,7 @@ const deleteActionMap = {
   event: deleteEvent,
   lesson: deleteLesson,
   announcement: deleteAnnouncement,
+  salle: deleteSalle,
   parent: deleteSubject,
   assignment: deleteSubject,
   result: deleteSubject,
@@ -60,6 +62,12 @@ const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const LessonForm = dynamic(() => import("./forms/LessonForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const SalleForm = dynamic(() => import("./forms/SalleForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AssignmentForm = dynamic(() => import("./forms/AssignmentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 // TODO: OTHER FORMS
@@ -137,6 +145,22 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  salle: (setOpen, type, data, relatedData) => (
+    <SalleForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  assignment: (setOpen, type, data, relatedData) => (
+    <AssignmentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -171,6 +195,15 @@ const FormModal = ({
         router.refresh();
       }
     }, [state, router]);
+
+    const handleDelete = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const formData = new FormData();
+      console.log(`Deleting ${table} with ID:`, id);
+      formData.append("id", id!.toString());
+      
+      // Rest of the function...
+    };
 
     return type === "delete" && id ? (
       <form action={formAction} className="p-4 flex flex-col gap-4">
@@ -215,6 +248,12 @@ const FormModal = ({
 };
 
 export default FormModal;
+
+
+
+
+
+
 
 
 

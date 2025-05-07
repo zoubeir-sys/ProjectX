@@ -45,14 +45,36 @@
   border-color: #eee !important;
 }
 
-.rbc-time-header {
+/*.rbc-time-header {
+  display: none !important;
+}*/
+.rbc-time-header-gutter::before {
+  content: "Jour";
+  display: block;
+  text-align: center;
+  font-weight: bold; /* optional */
+  padding: 5px;      /* optional spacing */
+}
+.rbc-allday-cell {
+  height: 0 !important;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+.rbc-current-time-indicator {
   display: none !important;
 }
 
 .rbc-time-content {
   border: none !important;
 }
+.rbc-event-content {
+  font-size: 12px;
+}
 
+
+/*------------------------------------------------*/
 .rbc-time-gutter.rbc-time-column {
   font-size: 12px !important;
 }

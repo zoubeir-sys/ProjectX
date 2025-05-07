@@ -4,77 +4,123 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
+import { Class, Lesson, Prisma, Subject, Teacher, Salle } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
 type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
-};
+} & { salle?: Salle };
 
+// ✅ Enum des jours de la semaine
+enum WeekDay {
+  MONDAY = "MONDAY",
+  TUESDAY = "TUESDAY",
+  WEDNESDAY = "WEDNESDAY",
+  THURSDAY = "THURSDAY",
+  FRIDAY = "FRIDAY",
+}
 
 const LessonListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const { sessionClaims } = auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-const { sessionClaims } = auth();
-const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const columns = [
+    {
+      header: "Nom du sujet",
+      accessor: "name",
+    },
+    {
+      header: "Salle",
+      accessor: "salle",
+    },
+    {
+      header: "Classe",
+      accessor: "class",
+    },
+    {
+      header: "Enseignant",
+      accessor: "teacher",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Date & Horaire",
+      accessor: "time",
+      className: "hidden md:table-cell",
+    },
+    ...(role === "admin"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
+  ];
 
+  const formatDay = (day: string) => {
+    const days = {
+      MONDAY: "Lundi",
+      TUESDAY: "Mardi",
+      WEDNESDAY: "Mercredi",
+      THURSDAY: "Jeudi",
+      FRIDAY: "Vendredi",
+    };
+    return days[day as keyof typeof days] || day;
+  };
 
-const columns = [
-  {
-    header: "Nom du sujet",
-    accessor: "name",
-  },
-  {
-    header: "Classe",
-    accessor: "class",
-  },
-  {
-    header: "Enseignant",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  ...(role === "admin"
-    ? [
-        {
-          header: "Actions",
-          accessor: "action",
-        },
-      ]
-    : []),
-];
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("fr-FR"); // 25/04/2025
+  };
 
-const renderRow = (item: LessonList) => (
-  <tr
-    key={item.id}
-    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-  >
-    <td className="flex items-center gap-4 p-4">{item.name}-{item.subject.name}</td>
-    <td>{item.class.name}</td>
-    <td className="hidden md:table-cell">
-      {item.teacher.name + " " + item.teacher.surname}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormContainer table="lesson" type="update" data={item} />
-            <FormContainer table="lesson" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
+  const formatTime = (startTime: Date, endTime: Date) => {
+    const start = new Date(startTime).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const end = new Date(endTime).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${start} - ${end}`;
+  };
+
+  const renderRow = (item: LessonList) => (
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    >
+      <td className="flex items-center gap-4 p-4">
+        {item.name}-{item.subject.name}
+      </td>
+      <td>{item.salle?.name || "Non assignée"}</td>
+      <td>{item.class.name}</td>
+      <td className="hidden md:table-cell">
+        {item.teacher.name + " " + item.teacher.surname}
+      </td>
+      <td className="hidden md:table-cell">
+        <div>{formatDate(item.startTime)}</div>
+        <div>{formatTime(item.startTime, item.endTime)}</div>
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <>
+              <FormContainer table="lesson" type="update" data={item} />
+              <FormContainer table="lesson" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   const { page, ...queryParams } = searchParams;
-
   const p = page ? parseInt(page) : 1;
-
-  // URL PARAMS CONDITION
 
   const query: Prisma.LessonWhereInput = {};
 
@@ -108,7 +154,9 @@ const renderRow = (item: LessonList) => (
         subject: { select: { name: true } },
         class: { select: { name: true } },
         teacher: { select: { name: true, surname: true } },
+        salle: true, // Include the full salle object
       },
+      orderBy: [{ startTime: "asc" }],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
@@ -133,6 +181,7 @@ const renderRow = (item: LessonList) => (
           </div>
         </div>
       </div>
+
       {/* LIST */}
       <Table columns={columns} renderRow={renderRow} data={data} />
       {/* PAGINATION */}
@@ -142,3 +191,9 @@ const renderRow = (item: LessonList) => (
 };
 
 export default LessonListPage;
+
+
+
+
+
+

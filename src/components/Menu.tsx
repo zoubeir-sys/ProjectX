@@ -30,9 +30,14 @@ const menuItems = [
         href: "/list/parents",
         visible: ["admin", "teacher"],
       },*/
-      
       {
         icon: "/class.png",
+        label: "Salles",
+        href: "/list/salles",
+        visible: ["admin",],
+      },
+      {
+        icon: "/salle.png",
         label: "Classes",
         href: "/list/classes",
         visible: ["admin", "teacher"],
@@ -45,7 +50,7 @@ const menuItems = [
       },
       {
         icon: "/lesson.png",
-        label: "Cours",
+        label: "Leçon",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
@@ -57,21 +62,28 @@ const menuItems = [
       },
       {
         icon: "/assignment.png",
-        label: "Devoirs",
+        label: "Tâches",
         href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["teacher", "student"],
       },
       {
         icon: "/result.png",
         label: "Results",
         href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["teacher"],
+      },
+      
+      {
+        icon: "/result.png",
+        label: "Results",
+        href: "/list/resultSTUD",
+        visible: ["student"],
       },
       {
         icon: "/attendance.png",
         label: "Attendance",
         href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["teacher"],
       },
       {
         icon: "/calendar.png",
