@@ -7,16 +7,16 @@ const ClassScoresChartContainer = async () => {
     include: {
       lessons: {
         include: {
-          exams: { include: { results: true } },
           assignments: { include: { results: true } },
         },
       },
+      exams: { include: { results: true } },
     },
   });
 
   const data = subjects.map((subject) => {
-    const examScores = subject.lessons.flatMap((lesson) =>
-      lesson.exams.flatMap((exam) => exam.results.map((r) => r.score))
+    const examScores = subject.exams.flatMap((exam) => 
+      exam.results.map((r) => r.score)
     );
 
     const assignmentScores = subject.lessons.flatMap((lesson) =>

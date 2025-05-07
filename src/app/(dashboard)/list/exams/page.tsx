@@ -4,16 +4,14 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
+import { Class, Exam, Prisma, Subject, Salle } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 
 type ExamList = Exam & {
-  lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
-  };
+  subject: Subject;
+  class: Class;
+  salle: Salle | null;
 };
 
 const ExamListPage = async ({
@@ -21,88 +19,103 @@ const ExamListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
+  const { userId, sessionClaims } = auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = userId;
 
-const { userId, sessionClaims } = auth();
-const role = (sessionClaims?.metadata as { role?: string })?.role;
-const currentUserId = userId;
+  const columns = [
+    {
+      header: "Nom du sujet",
+      accessor: "subject",
+    },
+    {
+      header: "Classe",
+      accessor: "class",
+    },
+    {
+      header: "Salle",
+      accessor: "salle",
+    },
+    {
+      header: "Date",
+      accessor: "date",
+      className: "hidden md:table-cell",
+    },
+    ...(role === "admin" || role === "teacher"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
+  ];
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("fr-FR"); // 25/04/2025
+  };
 
-
-const columns = [
-  {
-    header: "Nom du sujet",
-    accessor: "name",
-  },
-  {
-    header: "Classe",
-    accessor: "class",
-  },
-  {
-    header: "Enseignant",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell",
-  },
-  ...(role === "admin" || role === "teacher"
-    ? [
-        {
-          header: "Actions",
-          accessor: "action",
-        },
-      ]
-    : []),
-];
-
-const renderRow = (item: ExamList) => (
-  <tr
-    key={item.id}
-    className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-  >
-    <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
-    <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">
-      {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
-    </td>
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US").format(item.startTime)}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <>
-            <FormContainer table="exam" type="update" data={item} />
-            <FormContainer table="exam" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
+  const formatTime = (startTime: Date, endTime: Date) => {
+    const start = new Date(startTime).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const end = new Date(endTime).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${start} - ${end}`;
+  };
+  const renderRow = (item: ExamList) => (
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    >
+      <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
+      <td>{item.class.name}</td>
+      <td>{item.salle?.name || "Non assignée"}</td>
+      <td className="hidden md:table-cell">
+        <div>{formatDate(item.startTime)}</div>
+        <div>{formatTime(item.startTime, item.endTime)}</div>
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          {(role === "admin" || role === "teacher") && (
+            <>
+              <FormContainer table="exam" type="update" data={item} />
+              <FormContainer table="exam" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
 
   // URL PARAMS CONDITION
-
   const query: Prisma.ExamWhereInput = {};
 
-  query.lesson = {};
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
           case "classId":
-            query.lesson.classId = parseInt(value);
+            query.classId = parseInt(value);
             break;
           case "teacherId":
-            query.lesson.teacherId = value;
+            // Filter by subjects that the teacher teaches
+            query.subject = {
+              teachers: {
+                some: {
+                  id: value,
+                },
+              },
+            };
             break;
           case "search":
-            query.lesson.subject = {
+            query.subject = {
               name: { contains: value, mode: "insensitive" },
             };
             break;
@@ -114,15 +127,22 @@ const renderRow = (item: ExamList) => (
   }
 
   // ROLE CONDITIONS
-
   switch (role) {
     case "admin":
       break;
     case "teacher":
-      query.lesson.teacherId = currentUserId!;
+      // Since there's no teacherId in the Exam model anymore, we need to filter by subjects
+      // that the teacher teaches
+      query.subject = {
+        teachers: {
+          some: {
+            id: currentUserId!,
+          },
+        },
+      };
       break;
     case "student":
-      query.lesson.class = {
+      query.class = {
         students: {
           some: {
             id: currentUserId!,
@@ -131,7 +151,7 @@ const renderRow = (item: ExamList) => (
       };
       break;
     case "parent":
-      query.lesson.class = {
+      query.class = {
         students: {
           some: {
             parentId: currentUserId!,
@@ -139,7 +159,6 @@ const renderRow = (item: ExamList) => (
         },
       };
       break;
-
     default:
       break;
   }
@@ -148,13 +167,9 @@ const renderRow = (item: ExamList) => (
     prisma.exam.findMany({
       where: query,
       include: {
-        lesson: {
-          select: {
-            subject: { select: { name: true } },
-            teacher: { select: { name: true, surname: true } },
-            class: { select: { name: true } },
-          },
-        },
+        subject: true,
+        class: true,
+        salle: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -191,3 +206,9 @@ const renderRow = (item: ExamList) => (
 };
 
 export default ExamListPage;
+
+
+
+
+
+

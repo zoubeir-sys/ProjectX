@@ -43,3 +43,48 @@ export const adjustScheduleToCurrentWeek = (
     };
   });
 };
+
+// Add these utility functions for date and time formatting
+export const formatDate = (date: Date) => {
+  return new Date(date).toLocaleDateString("fr-FR");
+};
+
+export const formatTime = (startTime: Date, endTime: Date) => {
+  const start = new Date(startTime).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const end = new Date(endTime).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${start} - ${end}`;
+};
+
+// Client-side utility functions
+
+export function formatPdfUrl(pdfUrl: string): string {
+  if (!pdfUrl) return '';
+  
+  // For Cloudinary PDFs, we need to use the correct delivery type
+  // The format should be: https://res.cloudinary.com/[cloud_name]/image/upload/fl_attachment/[file_path]
+  if (pdfUrl.includes('cloudinary.com')) {
+    // Add fl_attachment parameter to force download
+    if (pdfUrl.includes('/upload/')) {
+      // Check if there's already a transformation
+      if (pdfUrl.includes('/upload/v')) {
+        // Insert fl_attachment before the version number
+        const parts = pdfUrl.split('/upload/v');
+        return `${parts[0]}/upload/fl_attachment/v${parts[1]}`;
+      } else {
+        // No version number, just add fl_attachment
+        return pdfUrl.replace('/upload/', '/upload/fl_attachment/');
+      }
+    }
+  }
+  
+  // If no transformation needed, return the original URL
+  return pdfUrl;
+}
+
+
