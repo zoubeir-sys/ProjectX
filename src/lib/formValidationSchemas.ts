@@ -80,12 +80,12 @@ export type StudentSchema = z.infer<typeof studentSchema>;
 
 export const examSchema = z.object({
   id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Title name is required!" }),
   startTime: z.coerce.date({ message: "Start time is required!" }),
   endTime: z.coerce.date({ message: "End time is required!" }),
-  lessonId: z.coerce.number({ message: "Lesson is required!" }),
+  classId: z.coerce.number({ message: "Class is required!" }),
+  subjectId: z.coerce.number({ message: "Subject is required!" }),
+  salleId: z.coerce.number().optional().nullable(),
 });
-
 export type ExamSchema = z.infer<typeof examSchema>;
 
 export const eventSchema = z.object({
@@ -111,9 +111,6 @@ export type AnnouncementSchema = z.infer<typeof announcementSchema>;
 export const lessonSchema = z.object({
   id: z.coerce.number().optional(),
   name: z.string().min(1, { message: "Le nom est requis!" }),
-  day: z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'], {
-    required_error: "Le jour est requis!"
-  }),
   startTime: z.coerce.date({
     required_error: "L'heure de début est requise!"
   }),
@@ -123,10 +120,30 @@ export const lessonSchema = z.object({
   subjectId: z.coerce.number().min(1, { message: "Le sujet est requis!" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise!" }),
   teacherId: z.string().min(1, { message: "L'enseignant est requis!" }),
+  salleId: z.coerce.number().optional().nullable(),
 });
 
 export type LessonSchema = z.infer<typeof lessonSchema>;
 
+export const salleSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z.string().min(1, { message: "Le nom de la salle est requis!" }),
+  floor: z.coerce.number().min(0, { message: "L'étage est requis!" }),
+});
+
+export type SalleSchema = z.infer<typeof salleSchema>;
+
+export const assignmentSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z.string().min(1, { message: "Le titre est requis!" }),
+  description: z.string().min(1, { message: "La description est requise!" }),
+  lessonId: z.coerce.number().min(1, { message: "La leçon est requise!" }),
+  dueDate: z.coerce.date({ message: "La date limite est requise!" }),
+  pdfUrl: z.string().optional(),
+  weightPercentage: z.number().default(20)
+});
+
+export type AssignmentSchema = z.infer<typeof assignmentSchema>;
 
 
 

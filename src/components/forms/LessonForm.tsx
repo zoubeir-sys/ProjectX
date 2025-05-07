@@ -23,6 +23,7 @@ const LessonForm = ({
 }) => {
   const {
     register,
+    watch,
     handleSubmit,
     formState: { errors },
   } = useForm<LessonSchema>({
@@ -37,26 +38,37 @@ const LessonForm = ({
     }
   );
 
+  const selectedSubjectId = watch("subjectId");
+
+  const filteredTeachers = selectedSubjectId
+    ? relatedData.teachers?.filter((teacher: { id: string; subjects: { id: number }[] }) =>
+        teacher.subjects?.some(subject => subject.id === Number(selectedSubjectId))
+      )
+    : [];
+
   const onSubmit = handleSubmit(async (formData) => {
-  console.log("Raw form data:", formData);
-  const processedData = {
-    ...formData,
-    startTime: new Date(formData.startTime),
-    endTime: new Date(formData.endTime),
-    subjectId: Number(formData.subjectId),
-    classId: Number(formData.classId),
-  };
-  console.log("Processed data:", processedData);
-  
-  try {
-    await formAction(processedData);
-  } catch (error) {
-    console.error("Submission error:", error);
-  }
-});
+    const processedData = {
+      ...formData,
+      // If in update mode, ensure the ID is included
+      ...(type === "update" && data?.id && { id: data.id }),
+      startTime: new Date(formData.startTime),
+      endTime: new Date(formData.endTime),
+      subjectId: Number(formData.subjectId),
+      classId: Number(formData.classId),
+      salleId: formData.salleId ? Number(formData.salleId) : null,
+    };
+
+    console.log("Submitting data:", processedData);
+    
+    try {
+      await formAction(processedData);
+    } catch (error) {
+      console.error("Submission error:", error);
+    }
+  });
 
   const router = useRouter();
-  const { subjects, classes, teachers } = relatedData;
+  const { subjects, classes, salles } = relatedData;
 
   useEffect(() => {
     if (state.success) {
@@ -69,7 +81,7 @@ const LessonForm = ({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-8">
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Créer une nouvelle leçon" : "Modifier la leçon"}
+        {type === "create" ? "Creer une nouvelle leçon" : "Modifier la leçon"}
       </h1>
 
       <div className="flex justify-between flex-wrap gap-4">
@@ -88,7 +100,7 @@ const LessonForm = ({
             {...register("subjectId")}
             defaultValue={data?.subjectId}
           >
-            <option value="">Sélectionner un sujet</option>
+            <option value="">Selectionner un sujet</option>
             {subjects?.map((subject: { id: number; name: string }) => (
               <option value={subject.id} key={subject.id}>
                 {subject.name}
@@ -107,7 +119,7 @@ const LessonForm = ({
             {...register("classId")}
             defaultValue={data?.classId}
           >
-            <option value="">Sélectionner une classe</option>
+            <option value="">Selectionner une classe</option>
             {classes?.map((class_: { id: number; name: string }) => (
               <option value={class_.id} key={class_.id}>
                 {class_.name}
@@ -120,45 +132,51 @@ const LessonForm = ({
         </div>
 
         <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Salle</label>
+          <select
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            {...register("salleId")}
+            defaultValue={data?.salleId}
+          >
+            <option value="">Selectionner une salle</option>
+            {salles?.map((salle: { id: number; name: string; floor: number }) => (
+              <option value={salle.id} key={salle.id}>
+                {salle.name} (etage {salle.floor})
+              </option>
+            ))}
+          </select>
+          {errors.salleId?.message && (
+            <p className="text-xs text-red-400">{errors.salleId.message.toString()}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Enseignant</label>
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("teacherId")}
             defaultValue={data?.teacherId}
           >
-            <option value="">Sélectionner un enseignant</option>
-            {teachers?.map((teacher: { id: string; name: string; surname: string }) => (
-              <option value={teacher.id} key={teacher.id}>
-                {teacher.name + " " + teacher.surname}
+            <option value="">Selectionner un enseignant</option>
+            {selectedSubjectId ? (
+              filteredTeachers.map((teacher: { id: string; name: string; surname: string }) => (
+                <option value={teacher.id} key={teacher.id}>
+                  {teacher.name + " " + teacher.surname}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                Selectionnez d abord un sujet
               </option>
-            ))}
+            )}
           </select>
           {errors.teacherId?.message && (
             <p className="text-xs text-red-400">{errors.teacherId.message.toString()}</p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Jour</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("day")}
-            defaultValue={data?.day}
-          >
-            <option value="">Sélectionner un jour</option>
-            <option value="MONDAY">Lundi</option>
-            <option value="TUESDAY">Mardi</option>
-            <option value="WEDNESDAY">Mercredi</option>
-            <option value="THURSDAY">Jeudi</option>
-            <option value="FRIDAY">Vendredi</option>
-          </select>
-          {errors.day?.message && (
-            <p className="text-xs text-red-400">{errors.day.message.toString()}</p>
-          )}
-        </div>
-
         <InputField
-          label="Heure de début"
+          label="Heure de debut"
           name="startTime"
           type="datetime-local"
           defaultValue={data?.startTime ? new Date(data.startTime).toISOString().slice(0, 16) : undefined}
@@ -175,15 +193,29 @@ const LessonForm = ({
           error={errors?.endTime}
         />
       </div>
-      {state.error && (
-        <span className="text-red-500">Quelque chose s est mal passé!</span>
+
+      {type === "update" && data?.id && (
+        <input 
+          type="hidden" 
+          {...register("id")} 
+          defaultValue={data.id} 
+        />
       )}
+
+      {state.error && (
+        <span className="text-red-500">Quelque chose s’est mal passe !</span>
+      )}
+
       <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+        {type === "create" ? "Creer" : "Modifier"}
       </button>
     </form>
   );
 };
 
 export default LessonForm;
+
+
+
+
 

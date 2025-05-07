@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
+import Link from "next/link";
 
 const Navbar = async () => {
   const user = await currentUser();
@@ -28,7 +29,9 @@ const Navbar = async () => {
 
         {/* Notification Icon */}
         <div className="relative w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-purple-100 cursor-pointer transition">
-          <Image src="/announcement.png" alt="Announcements" width={20} height={20} />
+          <Link href="/list/announcements">
+            <Image src="/announcement.png" alt="Announcements" width={20} height={20} />
+          </Link>
           <div className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-500 text-white rounded-full text-[10px] font-semibold">
             1
           </div>
@@ -36,7 +39,7 @@ const Navbar = async () => {
 
         {/* User Info */}
         <div className="flex flex-col items-end">
-          <span className="text-sm font-semibold text-gray-700">jane</span>
+          <span className="text-sm font-semibold text-gray-700">{name}</span>
           <span className="text-xs text-gray-500">{role}</span>
         </div>
 
@@ -48,3 +51,6 @@ const Navbar = async () => {
 };
 
 export default Navbar;
+
+
+

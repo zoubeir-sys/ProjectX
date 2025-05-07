@@ -1,4 +1,4 @@
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -7,6 +7,8 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
+import { FaFilePdf } from "react-icons/fa";
+import { formatPdfUrl } from "@/lib/utils";
 
 type AssignmentList = Assignment & {
   lesson: {
@@ -29,16 +31,20 @@ const AssignmentListPage = async ({
   
   const columns = [
     {
-      header: "Nom du sujet",
-      accessor: "name",
+      header: "Titre",
+      accessor: "title",
     },
     {
       header: "Classe",
       accessor: "class",
     },
     {
-      header: "	Enseignant",
-      accessor: "teacher",
+      header: "Matière - Enseignant",
+      accessor: "subject",
+    },
+    {
+      header: "Description",
+      accessor: "description",
       className: "hidden md:table-cell",
     },
     {
@@ -61,21 +67,36 @@ const AssignmentListPage = async ({
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
+      <td className="flex items-center gap-4 p-4">{item.title}</td>
       <td>{item.lesson.class.name}</td>
+      <td>{item.lesson.subject.name+ " - " +item.lesson.teacher.name + " " + item.lesson.teacher.surname}</td>
+      
+      
       <td className="hidden md:table-cell">
-        {item.lesson.teacher.name + " " + item.lesson.teacher.surname}
+        {item.description}
       </td>
       <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("en-US").format(item.dueDate)}
+        {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
       </td>
       <td>
         <div className="flex items-center gap-2">
           {(role === "admin" || role === "teacher") && (
             <>
-              <FormModal table="assignment" type="update" data={item} />
-              <FormModal table="assignment" type="delete" id={item.id} />
+              <FormContainer table="assignment" type="update" data={item} />
+              <FormContainer table="assignment" type="delete" id={item.id} />
             </>
+          )}
+          {item.pdfUrl ? (
+            <a 
+              href={`/api/download?url=${encodeURIComponent(item.pdfUrl)}&filename=${encodeURIComponent(item.title.replace(/\s+/g, '_') + '.pdf')}`}
+              className="flex items-center gap-1 p-2 rounded bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+              title="Télécharger le PDF"
+            >
+              <FaFilePdf className="text-red-500" />
+              <span className="hidden md:inline">PDF</span>
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400 italic">Pas de PDF</span>
           )}
         </div>
       </td>
@@ -103,9 +124,10 @@ const AssignmentListPage = async ({
             query.lesson.teacherId = value;
             break;
           case "search":
-            query.lesson.subject = {
-              name: { contains: value, mode: "insensitive" },
-            };
+            query.OR = [
+              { title: { contains: value, mode: "insensitive" } },
+              { lesson: { subject: { name: { contains: value, mode: "insensitive" } } } }
+            ];
             break;
           default:
             break;
@@ -158,6 +180,7 @@ const AssignmentListPage = async ({
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
+      orderBy: { dueDate: 'asc' }
     }),
     prisma.assignment.count({ where: query }),
   ]);
@@ -177,10 +200,9 @@ const AssignmentListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" ||
-              (role === "teacher" && (
-                <FormModal table="assignment" type="create" />
-              ))}
+            {(role === "admin" || role === "teacher") && (
+              <FormContainer table="assignment" type="create" />
+            )}
           </div>
         </div>
       </div>
@@ -193,3 +215,17 @@ const AssignmentListPage = async ({
 };
 
 export default AssignmentListPage;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

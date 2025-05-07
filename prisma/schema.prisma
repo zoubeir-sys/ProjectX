@@ -86,6 +86,7 @@ model Class {
   grade         Grade          @relation(fields: [gradeId], references: [id])
   events        Event[]
   announcements Announcement[]
+  exams       Exam[]
 }
 
 model Subject {
@@ -93,46 +94,51 @@ model Subject {
   name     String    @unique
   teachers Teacher[]
   lessons  Lesson[]
+  exams       Exam[]
 }
 
 model Lesson {
   id        Int      @id @default(autoincrement())
   name      String
-  day       Day
   startTime DateTime
   endTime   DateTime
-
+  salleId     Int? 
+  salle       Salle?         @relation(fields: [salleId], references: [id])
   subjectId   Int
   subject     Subject      @relation(fields: [subjectId], references: [id])
   classId     Int
   class       Class        @relation(fields: [classId], references: [id])
   teacherId   String
   teacher     Teacher      @relation(fields: [teacherId], references: [id])
-  exams       Exam[]
+  
   assignments Assignment[]
   attendances Attendance[]
 }
 
 model Exam {
   id        Int      @id @default(autoincrement())
-  title     String
   startTime DateTime
   endTime   DateTime
-
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  salleId   Int?
+  salle     Salle?   @relation(fields: [salleId], references: [id])
+  classId     Int
+  class       Class        @relation(fields: [classId], references: [id])
+  results   Result[]
 }
 
 model Assignment {
-  id        Int      @id @default(autoincrement())
-  title     String
-  startDate DateTime
-  dueDate   DateTime
+  id               Int      @id @default(autoincrement())
+  title            String
+  description      String
+  dueDate          DateTime
+  pdfUrl           String?
+  weightPercentage Int      @default(20)
 
-  lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
-  results  Result[]
+  lessonId         Int
+  lesson           Lesson   @relation(fields: [lessonId], references: [id])
+  results          Result[]
 }
 
 model Result {
@@ -179,6 +185,14 @@ model Announcement {
   class   Class? @relation(fields: [classId], references: [id])
 }
 
+model Salle {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  floor Int
+  lessons       Lesson[]
+  exams       Exam[]
+}
+
 enum UserSex {
   MALE
   FEMALE
@@ -191,3 +205,7 @@ WEDNESDAY
 THURSDAY
 FRIDAY
 }
+
+
+
+
